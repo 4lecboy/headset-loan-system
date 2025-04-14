@@ -1,18 +1,22 @@
+"""
+Database configuration and connection utilities
+"""
 import pymysql
+from utils.env_loader import get_env, load_env
+
+# Load environment variables
+load_env()
 
 def connect_to_mysql():
     """
     Create and return a connection to the MySQL database
-    
-    Returns:
-        pymysql.connections.Connection: Database connection object
     """
     conn = pymysql.connect(
-        host='10.42.10.38',  # Server address
-        user='root',         # Username
-        password='',         # Password
-        database='headsets', # Database name
-        autocommit=True      # Auto-commit transactions
+        host=get_env('DB_HOST', '10.42.10.38'),
+        user=get_env('DB_USER', 'root'),
+        password=get_env('DB_PASSWORD', ''),
+        database=get_env('DB_NAME', 'headsets'),
+        autocommit=True
     )
     return conn
 

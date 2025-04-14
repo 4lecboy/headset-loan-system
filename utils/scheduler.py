@@ -5,47 +5,68 @@ import threading
 import schedule
 import time
 from datetime import datetime
+from PIL import Image
+from pystray import Icon, MenuItem as item, Menu
+
 from utils.email_sender import send_scheduled_email
 
 class SchedulerManager:
     """
     Manager class for scheduling and running periodic tasks
+    with system tray integration
     """
     def __init__(self):
         self.exit_event = threading.Event()
         self.scheduler_thread = None
+        self.tray_thread = None
+        self.icon = None
         self.is_running = False
     
     def start(self):
         """
-        Start the scheduler thread
+        Start the scheduler thread and system tray icon
         """
         if self.is_running:
             print("Scheduler is already running")
             return
         
         self.exit_event.clear()
+        
+        # Start scheduler thread
         self.scheduler_thread = threading.Thread(
             target=self._run_scheduler, 
             args=(self.exit_event,),
             daemon=True
         )
         self.scheduler_thread.start()
+        
+        # Start system tray thread
+        self.tray_thread = threading.Thread(
+            target=self._run_tray_icon,
+            daemon=True
+        )
+        self.tray_thread.start()
+        
         self.is_running = True
         print(f"Scheduler started at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     
     def stop(self):
         """
-        Stop the scheduler thread
+        Stop the scheduler thread and system tray icon
         """
         if not self.is_running:
             print("Scheduler is not running")
             return
         
         self.exit_event.set()
+        
+        if self.icon:
+            self.icon.stop()
+            
         if self.scheduler_thread:
             self.scheduler_thread.join(timeout=5.0)
             self.scheduler_thread = None
+            
         self.is_running = False
         print(f"Scheduler stopped at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     
@@ -88,9 +109,6 @@ class SchedulerManager:
         """
         print(f"Running weekly cleanup task at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         # Implement weekly cleanup logic here
-        # Examples:
-        # - Archive old logs
-        # - Generate weekly reports
         return True
     
     def _monthly_report_task(self):
@@ -99,9 +117,6 @@ class SchedulerManager:
         """
         print(f"Running monthly report task at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         # Implement monthly report generation logic here
-        # Examples:
-        # - Generate comprehensive monthly statistics
-        # - Send monthly summary to management
         return True
     
     def add_task(self, schedule_spec, task_func):
@@ -116,7 +131,55 @@ class SchedulerManager:
             schedule: The schedule job
         """
         return schedule_spec.do(task_func)
+    
+    def _run_tray_icon(self):
+        """
+        Create and run system tray icon
+        """
+        try:
+            # Create menu
+            menu = Menu(
+                item('Send Email Now', self._on_send_now),
+                item('Exit', self._on_exit)
+            )
+            
+            # Try to load the icon file
+            try:
+                image = Image.open("hed.ico")
+            except FileNotFoundError:
+                # Create a basic square icon if file not found
+                image = Image.new('RGB', (64, 64), color=(73, 109, 137))
+            
+            # Create and run the system tray icon
+            self.icon = Icon("Headset Monitor", image, "Headset Loan System", menu)
+            self.icon.run()
+            
+        except Exception as e:
+            print(f"Error creating system tray icon: {e}")
+    
+    def _on_send_now(self, icon, item):
+        """
+        Handle 'Send Email Now' menu item click
+        
+        Args:
+            icon: Icon instance
+            item: Menu item instance
+        """
+        print("Sending email now...")
+        threading.Thread(target=send_scheduled_email).start()
+    
+    def _on_exit(self, icon, item):
+        """
+        Handle 'Exit' menu item click
+        
+        Args:
+            icon: Icon instance
+            item: Menu item instance
+        """
+        self.exit_event.set()
+        icon.stop()
 
+# For backwards compatibility
 def run_schedule(exit_event):
     """
     Legacy function to run the scheduler directly

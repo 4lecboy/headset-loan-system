@@ -150,7 +150,7 @@ class LoanForm:
         """Populate employee info when Ashima ID is entered"""
         ashima_id = self.ashima_entry.get().strip()
         if ashima_id:
-            employee_info = self.controller.user_model.fetch_emp(ashima_id)
+            employee_info = self.controller.fetch_emp(ashima_id)
             if employee_info:
                 self.name1_entry.delete(0, tk.END)
                 self.name1_entry.insert(0, employee_info['FirstName'])
