@@ -12,7 +12,7 @@ def connect_to_mysql():
     Create and return a connection to the MySQL database
     """
     conn = pymysql.connect(
-        host=get_env('DB_HOST', '10.42.10.38'),
+        host=get_env('DB_HOST'),
         user=get_env('DB_USER', 'root'),
         password=get_env('DB_PASSWORD', ''),
         database=get_env('DB_NAME', 'headsets'),

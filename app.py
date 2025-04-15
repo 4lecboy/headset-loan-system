@@ -233,16 +233,300 @@ class HeadsetLoanSystem:
         self.current_frame = LogsForm(self.root).frame
     
     def open_headset_window(self):
-        # Implement this method to open headset window
-        pass
-    
+        """Open a popup window to add a new headset to inventory"""
+        # Create the popup window
+        headset_window = tk.Toplevel(self.root)
+        headset_window.title("Add New Headset")
+        headset_window.geometry("450x250")
+        headset_window.resizable(False, False)
+        headset_window.configure(background="#172f66")
+        
+        # Make it modal
+        headset_window.transient(self.root)
+        headset_window.grab_set()
+        
+        # Center the window
+        headset_window.update_idletasks()
+        width = headset_window.winfo_width()
+        height = headset_window.winfo_height()
+        x = (headset_window.winfo_screenwidth() // 2) - (width // 2)
+        y = (headset_window.winfo_screenheight() // 2) - (height // 2)
+        headset_window.geometry('{}x{}+{}+{}'.format(width, height, x, y))
+        
+        # Create form fields
+        frame = tk.Frame(headset_window, bg="#172f66")
+        frame.pack(pady=20, padx=20, fill="both", expand=True)
+        
+        # Asset Tag field
+        Label(frame, text="Asset Tag ID:", font=("ANTON", 12, "bold"), 
+            bg="#172f66", fg="#FFFFFF").grid(row=0, column=0, sticky="w", pady=10)
+        
+        from utils.validation import on_validateasset
+        vcmd = (headset_window.register(on_validateasset), '%P')
+        
+        asset_entry = tk.Entry(frame, width=25, font=("Arial", 12), validate="key", validatecommand=vcmd)
+        asset_entry.grid(row=0, column=1, sticky="w", pady=10)
+        asset_entry.focus_set()
+        
+        # Description field (optional)
+        Label(frame, text="Description:", font=("ANTON", 12, "bold"), 
+            bg="#172f66", fg="#FFFFFF").grid(row=1, column=0, sticky="w", pady=10)
+        
+        desc_entry = tk.Entry(frame, width=25, font=("Arial", 12))
+        desc_entry.grid(row=1, column=1, sticky="w", pady=10)
+        
+        # Button frame
+        button_frame = tk.Frame(frame, bg="#172f66")
+        button_frame.grid(row=2, column=0, columnspan=2, pady=20)
+        
+        def save_headset():
+            asset_tag = asset_entry.get().strip()
+            description = desc_entry.get().strip()
+            
+            if not asset_tag:
+                messagebox.showwarning("Input Error", "Asset Tag ID is required.", parent=headset_window)
+                return
+            
+            # Save to database
+            conn = connect_to_mysql()
+            cursor = conn.cursor()
+            try:
+                # Check if asset tag already exists
+                cursor.execute("SELECT COUNT(*) FROM storage_list WHERE AssetTagID = %s", (asset_tag,))
+                if cursor.fetchone()[0] > 0:
+                    messagebox.showerror("Duplicate Error", 
+                                        f"Asset Tag '{asset_tag}' already exists in the inventory.", 
+                                        parent=headset_window)
+                    return
+                
+                # Insert new headset
+                cursor.execute(
+                    "INSERT INTO storage_list (AssetTagID, Description, Flag) VALUES (%s, %s, 1)",
+                    (asset_tag, description)
+                )
+                conn.commit()
+                
+                # Add log entry
+                if self.user_name and self.ashima_id:
+                    cursor.execute(
+                        "INSERT INTO tbllogs (AshimaID, Name, Performed, Item, Date) VALUES (%s, %s, %s, %s, %s)",
+                        (self.ashima_id, self.user_name, "Added new headset", asset_tag, datetime.now())
+                    )
+                    conn.commit()
+                
+                # Success
+                messagebox.showinfo("Success", f"Headset '{asset_tag}' added successfully.", parent=headset_window)
+                headset_window.destroy()
+                
+            except Exception as e:
+                messagebox.showerror("Database Error", f"Failed to add headset: {str(e)}", parent=headset_window)
+            finally:
+                cursor.close()
+                conn.close()
+        
+        # Save button
+        save_btn = Button(button_frame, text="Save", command=save_headset,
+                        bg="green", fg="#FFFFFF", font=("ANTON", 12, "bold"))
+        save_btn.pack(side="left", padx=10)
+        
+        # Cancel button
+        cancel_btn = Button(button_frame, text="Cancel", command=headset_window.destroy,
+                        bg="red", fg="#FFFFFF", font=("ANTON", 12, "bold"))
+        cancel_btn.pack(side="right", padx=10)
+        
+        # Bind keyboard shortcuts
+        headset_window.bind("<Return>", lambda event: save_headset())
+        headset_window.bind("<Escape>", lambda event: headset_window.destroy())
+
     def open_campaign_window(self):
-        # Implement this method to open campaign window
-        pass
-    
+        """Open a popup window to add a new campaign"""
+        # Create the popup window
+        campaign_window = tk.Toplevel(self.root)
+        campaign_window.title("Add New Campaign")
+        campaign_window.geometry("400x200")
+        campaign_window.resizable(False, False)
+        campaign_window.configure(background="#172f66")
+        
+        # Make it modal
+        campaign_window.transient(self.root)
+        campaign_window.grab_set()
+        
+        # Center the window
+        campaign_window.update_idletasks()
+        width = campaign_window.winfo_width()
+        height = campaign_window.winfo_height()
+        x = (campaign_window.winfo_screenwidth() // 2) - (width // 2)
+        y = (campaign_window.winfo_screenheight() // 2) - (height // 2)
+        campaign_window.geometry('{}x{}+{}+{}'.format(width, height, x, y))
+        
+        # Create form fields
+        frame = tk.Frame(campaign_window, bg="#172f66")
+        frame.pack(pady=20, padx=20, fill="both", expand=True)
+        
+        # Campaign name field
+        Label(frame, text="Campaign Name:", font=("ANTON", 12, "bold"), 
+            bg="#172f66", fg="#FFFFFF").grid(row=0, column=0, sticky="w", pady=10)
+        
+        campaign_entry = tk.Entry(frame, width=25, font=("Arial", 12))
+        campaign_entry.grid(row=0, column=1, sticky="w", pady=10)
+        campaign_entry.focus_set()
+        
+        # Button frame
+        button_frame = tk.Frame(frame, bg="#172f66")
+        button_frame.grid(row=2, column=0, columnspan=2, pady=20)
+        
+        def save_campaign():
+            campaign_name = campaign_entry.get().strip()
+            
+            if not campaign_name:
+                messagebox.showwarning("Input Error", "Campaign name is required.", parent=campaign_window)
+                return
+            
+            # Save to database
+            conn = connect_to_mysql()
+            cursor = conn.cursor()
+            try:
+                # Check if campaign already exists
+                cursor.execute("SELECT COUNT(*) FROM tblcampaign WHERE CampaignName = %s", (campaign_name,))
+                if cursor.fetchone()[0] > 0:
+                    messagebox.showerror("Duplicate Error", 
+                                        f"Campaign '{campaign_name}' already exists.", 
+                                        parent=campaign_window)
+                    return
+                
+                # Insert new campaign
+                cursor.execute(
+                    "INSERT INTO tblcampaign (CampaignName) VALUES (%s)",
+                    (campaign_name,)
+                )
+                conn.commit()
+                
+                # Add log entry
+                if self.user_name and self.ashima_id:
+                    cursor.execute(
+                        "INSERT INTO tbllogs (AshimaID, Name, Performed, Item, Date) VALUES (%s, %s, %s, %s, %s)",
+                        (self.ashima_id, self.user_name, "Added new campaign", campaign_name, datetime.now())
+                    )
+                    conn.commit()
+                
+                # Success
+                messagebox.showinfo("Success", f"Campaign '{campaign_name}' added successfully.", parent=campaign_window)
+                campaign_window.destroy()
+                
+            except Exception as e:
+                messagebox.showerror("Database Error", f"Failed to add campaign: {str(e)}", parent=campaign_window)
+            finally:
+                cursor.close()
+                conn.close()
+        
+        # Save button
+        save_btn = Button(button_frame, text="Save", command=save_campaign,
+                        bg="green", fg="#FFFFFF", font=("ANTON", 12, "bold"))
+        save_btn.pack(side="left", padx=10)
+        
+        # Cancel button
+        cancel_btn = Button(button_frame, text="Cancel", command=campaign_window.destroy,
+                        bg="red", fg="#FFFFFF", font=("ANTON", 12, "bold"))
+        cancel_btn.pack(side="right", padx=10)
+        
+        # Bind keyboard shortcuts
+        campaign_window.bind("<Return>", lambda event: save_campaign())
+        campaign_window.bind("<Escape>", lambda event: campaign_window.destroy())
+
     def open_room_window(self):
-        # Implement this method to open room window
-        pass
+        """Open a popup window to add a new room"""
+        # Create the popup window
+        room_window = tk.Toplevel(self.root)
+        room_window.title("Add New Room")
+        room_window.geometry("400x200")
+        room_window.resizable(False, False)
+        room_window.configure(background="#172f66")
+        
+        # Make it modal
+        room_window.transient(self.root)
+        room_window.grab_set()
+        
+        # Center the window
+        room_window.update_idletasks()
+        width = room_window.winfo_width()
+        height = room_window.winfo_height()
+        x = (room_window.winfo_screenwidth() // 2) - (width // 2)
+        y = (room_window.winfo_screenheight() // 2) - (height // 2)
+        room_window.geometry('{}x{}+{}+{}'.format(width, height, x, y))
+        
+        # Create form fields
+        frame = tk.Frame(room_window, bg="#172f66")
+        frame.pack(pady=20, padx=20, fill="both", expand=True)
+        
+        # Room number field
+        Label(frame, text="Room Number:", font=("ANTON", 12, "bold"), 
+            bg="#172f66", fg="#FFFFFF").grid(row=0, column=0, sticky="w", pady=10)
+        
+        room_entry = tk.Entry(frame, width=25, font=("Arial", 12))
+        room_entry.grid(row=0, column=1, sticky="w", pady=10)
+        room_entry.focus_set()
+        
+        # Button frame
+        button_frame = tk.Frame(frame, bg="#172f66")
+        button_frame.grid(row=2, column=0, columnspan=2, pady=20)
+        
+        def save_room():
+            room_number = room_entry.get().strip()
+            
+            if not room_number:
+                messagebox.showwarning("Input Error", "Room number is required.", parent=room_window)
+                return
+            
+            # Save to database
+            conn = connect_to_mysql()
+            cursor = conn.cursor()
+            try:
+                # Check if room already exists
+                cursor.execute("SELECT COUNT(*) FROM tblroom WHERE RoomNumber = %s", (room_number,))
+                if cursor.fetchone()[0] > 0:
+                    messagebox.showerror("Duplicate Error", 
+                                        f"Room '{room_number}' already exists.", 
+                                        parent=room_window)
+                    return
+                
+                # Insert new room
+                cursor.execute(
+                    "INSERT INTO tblroom (RoomNumber) VALUES (%s)",
+                    (room_number,)
+                )
+                conn.commit()
+                
+                # Add log entry
+                if self.user_name and self.ashima_id:
+                    cursor.execute(
+                        "INSERT INTO tbllogs (AshimaID, Name, Performed, Item, Date) VALUES (%s, %s, %s, %s, %s)",
+                        (self.ashima_id, self.user_name, "Added new room", room_number, datetime.now())
+                    )
+                    conn.commit()
+                
+                # Success
+                messagebox.showinfo("Success", f"Room '{room_number}' added successfully.", parent=room_window)
+                room_window.destroy()
+                
+            except Exception as e:
+                messagebox.showerror("Database Error", f"Failed to add room: {str(e)}", parent=room_window)
+            finally:
+                cursor.close()
+                conn.close()
+        
+        # Save button
+        save_btn = Button(button_frame, text="Save", command=save_room,
+                        bg="green", fg="#FFFFFF", font=("ANTON", 12, "bold"))
+        save_btn.pack(side="left", padx=10)
+        
+        # Cancel button
+        cancel_btn = Button(button_frame, text="Cancel", command=room_window.destroy,
+                        bg="red", fg="#FFFFFF", font=("ANTON", 12, "bold"))
+        cancel_btn.pack(side="right", padx=10)
+        
+        # Bind keyboard shortcuts
+        room_window.bind("<Return>", lambda event: save_room())
+        room_window.bind("<Escape>", lambda event: room_window.destroy())
     
     def fetch_campaigns(self):
         # Implement method to fetch campaigns
